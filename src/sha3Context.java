@@ -6,19 +6,21 @@ import java.math.BigInteger;
  * @author Markku-Juhani O. Saarinen <mjos@iki.fi>
  */
 public class sha3Context {
-    private BigInteger state;
-    private BigInteger pt;
-    private BigInteger rsiz;
-    private BigInteger mdlen;
+    private BigInteger[] state;
+    private int pt;
+    private int rsiz;
+    private int mdlen;
 
 //TODO decide if i even need this
-    public sha3Context() {}
-    public void setState(BigInteger theState) {this.state = theState;}
-    public BigInteger getState() {return this.state;}
-    public void setPt(BigInteger thePt) {this.pt = thePt;}
-    public BigInteger getPt() {return this.pt;}
-    public void setRsiz(BigInteger theRsiz) {this.rsiz = theRsiz;}
-    public BigInteger getRsiz() {return this.rsiz;}
-    public void setMdlen(BigInteger theMdlen) {this.mdlen = theMdlen;}
-    public BigInteger getMdlen() {return this.mdlen;}
+    public sha3Context() {
+        state = new BigInteger[25];
+    }
+    public void setState(BigInteger[] theState) {this.state = theState;}
+    public BigInteger[] getState() {return this.state;}
+    public void setPt(int thePt) {this.pt = thePt;}
+    public int getPt() {return this.pt;}
+    public void setRsiz(int theRsiz) {this.rsiz = theRsiz;}
+    public int getRsiz() {return this.rsiz;}
+    public void setMdlen(int theMdlen) {this.mdlen = theMdlen;}
+    public int getMdlen() {return this.mdlen;}
 }
