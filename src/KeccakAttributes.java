@@ -44,6 +44,15 @@ public interface KeccakAttributes {
     /** Largest unsigned long possible as a BigInteger. */
     BigInteger MAX_ULONG = new BigInteger("18446744073709551615");
 
+    /** Standard length for SHA3 512 in FIPS 202. */
+    int SHA3_512_OUTPUT_LENGTH = 64;
+
+    int PERMUTATION_WIDTH = 1600;
+
+    int SHA3_512_ROTATION = 576;
+
+    String SHA3_512_D = "06";
+
     int[] keccakf_rotc = new int[] {
             1,  3,  6,  10, 15, 21, 28, 36, 45, 55, 2,  14,
             27, 41, 56, 8, 25, 43, 62, 18, 39, 61, 20, 44
