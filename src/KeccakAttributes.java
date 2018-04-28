@@ -13,6 +13,9 @@ public interface KeccakAttributes {
     /** Number of Keccak rounds. */
     int ROUND_NUM = 24;
 
+    /** Result of right_encode(0) from the NIST SP 800-185 standard. Left 8 bits are the number (zero) and the right 8 bits is the length of the previous part. */
+    BigInteger KMAC_ZEROLENGTH_ENCODING = new BigInteger("0000000010000000", 16);
+
     /** The Keccak rounds as BigInteger objects. */
     BigInteger[] ROUND_CONSTANTS = new BigInteger[] {
             new BigInteger("0000000000000001", 16),
@@ -44,14 +47,11 @@ public interface KeccakAttributes {
     /** Largest unsigned long possible as a BigInteger. */
     BigInteger MAX_ULONG = new BigInteger("18446744073709551615");
 
-    /** Standard length for SHA3 512 in FIPS 202. */
-    int SHA3_512_OUTPUT_LENGTH = 64;
-
     int PERMUTATION_WIDTH = 1600;
 
-    int SHA3_512_ROTATION = 576;
+    int SHAKE256_ROTATION = 1088;
 
-    String SHA3_512_D = "06";
+    String SHAKE256_D = "1F";
 
     int[] keccakf_rotc = new int[] {
             1,  3,  6,  10, 15, 21, 28, 36, 45, 55, 2,  14,

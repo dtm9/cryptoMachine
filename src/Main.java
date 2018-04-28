@@ -1,14 +1,13 @@
 import javax.swing.*;
 import javax.swing.filechooser.FileSystemView;
 import java.io.File;
-import java.math.BigInteger;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Scanner;
 
 import static extras.HexTools.generateHexFromByteArray;
-import static extras.HexTools.generateReverseHexFromByteArray;
+
 
 
 /**
@@ -42,7 +41,8 @@ public class Main implements KeccakAttributes {
 
     public static void main(final String[] theArgs) {
         boolean done = false;
-        EncryptionEngine ee = new EncryptionEngine();
+        KMACXOF256EncryptionEngine ee = new KMACXOF256EncryptionEngine();
+        //PassphraseEncryptionEngine pe = new PassphraseEncryptionEngine();
 
         while (!done) {
             printMainMenu();
@@ -50,35 +50,51 @@ public class Main implements KeccakAttributes {
 
             switch (theChoice) {
                 case 1: //file chooser
-                    JFileChooser myChooser = new JFileChooser(FileSystemView.getFileSystemView().getHomeDirectory());
 
-                    int retValue = myChooser.showOpenDialog(null);
-                    File selectedFile = null;
+                    myScanner.nextLine(); //no assignment to sanitize the scanner
 
-                    if (retValue == JFileChooser.APPROVE_OPTION) {
-                        selectedFile = myChooser.getSelectedFile();
-                        Path path = Paths.get(selectedFile.getAbsolutePath());
-                        try {
-                            byte[] data = Files.readAllBytes(path);
-                            String messageToEncrypt = generateHexFromByteArray(data);
-                            System.out.println("SHA512 result: " + ee.getHash(messageToEncrypt));
-                        } catch (Exception e) { e.printStackTrace(); }
+                    printMenu1();
+                    int secondChoice = myScanner.nextInt();
+                    switch (secondChoice) {
+                        case 1: //choose file
+                            JFileChooser myChooser = new JFileChooser(FileSystemView.getFileSystemView().getHomeDirectory());
+
+                            int retValue = myChooser.showOpenDialog(null);
+                            File selectedFile = null;
+
+                            if (retValue == JFileChooser.APPROVE_OPTION) {
+                                selectedFile = myChooser.getSelectedFile();
+                                Path path = Paths.get(selectedFile.getAbsolutePath());
+                                try {
+                                    byte[] data = Files.readAllBytes(path);
+                                    String messageToEncrypt = generateHexFromByteArray(data);
+                                    System.out.println("SHA3 result: " + ee.getHash(messageToEncrypt, 128, ""));
+                                } catch (Exception e) { e.printStackTrace(); }
 
 
 
+                            }
+                            break;
+
+                        case 2: //type message
+                            System.out.println("Type your message:");
+                            System.out.println();
+                            myScanner.nextLine(); //no assignment to sanitize the scanner
+
+                            String rawInput = myScanner.nextLine();
+                            String messageToEncrypt = generateHexFromByteArray(rawInput.getBytes());
+
+                            System.out.println("SHA3 result: " + ee.getHash(messageToEncrypt, 128, ""));
+                            break;
                     }
 
                     break;
 
-                case 2: //new message to encode
-                    System.out.println("Type your message:");
-                    System.out.println();
-                    myScanner.nextLine(); //no assignment to sanitize the scanner
+                case 2: //symmetric encrypt
 
-                    String rawInput = myScanner.nextLine();
-                    String messageToEncrypt = generateHexFromByteArray(rawInput.getBytes());
+                    //TODO mirror ee's getHash arguments as pe will need an instantiation of ee.
 
-                    System.out.println("SHA512 result: " + ee.getHash(messageToEncrypt));
+
                     break;
 
                 case 3: //exit
@@ -98,7 +114,22 @@ public class Main implements KeccakAttributes {
         mySB.append("----Main Menu----");
         mySB.append(LINE_BREAK);
         mySB.append(LINE_BREAK);
-        mySB.append("1) Choose a file to hash using SHA3");
+        mySB.append("1) Encrypt something with SHA3");
+        mySB.append(LINE_BREAK);
+        mySB.append("2) Encrypt file symmetrically with passphrase");
+        mySB.append(LINE_BREAK);
+        mySB.append("3) Exit Program");
+        mySB.append(LINE_BREAK);
+        mySB.append(LINE_BREAK);
+        System.out.print(mySB.toString());
+        System.out.print("Enter a command: ");
+        mySB.delete(0, mySB.capacity());
+    }
+
+    private static void printMenu1() {
+        mySB.append(LINE_BREAK);
+        mySB.append(LINE_BREAK);
+        mySB.append("1) Encrypt a file with SHA3");
         mySB.append(LINE_BREAK);
         mySB.append("2) Type a new message to hash using SHA3");
         mySB.append(LINE_BREAK);
@@ -109,6 +140,4 @@ public class Main implements KeccakAttributes {
         System.out.print("Enter a command: ");
         mySB.delete(0, mySB.capacity());
     }
-
-
 }

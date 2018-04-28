@@ -1,4 +1,6 @@
 import java.math.BigInteger;
+
+import static extras.HexTools.generateHexFromByteArray;
 import static extras.HexTools.generateReverseHexFromByteArray;
 
 /**
@@ -8,13 +10,15 @@ import static extras.HexTools.generateReverseHexFromByteArray;
  * @author Dr. Markku-Juhani O. Saarinen <mjos@iki.fi>
  * @author Romus <https://github.com/romus>
  */
-public class EncryptionEngine implements KeccakAttributes {
+public class KMACXOF256EncryptionEngine implements KeccakAttributes {
 
 
     private int w;
     private int n;
 
-    public EncryptionEngine() {
+
+
+    public KMACXOF256EncryptionEngine() {
         init();
     }
 
@@ -41,7 +45,6 @@ public class EncryptionEngine implements KeccakAttributes {
     }
 
     private void init() {
-        //TODO take arguments instead of the static width for more functionality.
         w = PERMUTATION_WIDTH / 25;
         int l = (int) (Math.log(w) / Math.log(2));
         n = 12 + 2 * l;
@@ -63,17 +66,17 @@ public class EncryptionEngine implements KeccakAttributes {
 
     private BigInteger[][] addPadding(String message) {
         int size;
-        message = message + SHA3_512_D;
+        message = message + SHAKE256_D;
 
-        while (((message.length() / 2) * 8 % SHA3_512_ROTATION) != SHA3_512_ROTATION - 8) {
+        while (((message.length() / 2) * 8 % SHAKE256_ROTATION) != SHAKE256_ROTATION - 8) {
             message = message + "00";
         }
 
         message = message + "80";
-        size = (((message.length() / 2) * 8) / SHA3_512_ROTATION);
+        size = (((message.length() / 2) * 8) / SHAKE256_ROTATION);
 
         BigInteger[][] messageArray = new BigInteger[size][];
-        messageArray[0] = new BigInteger[1600 / w];
+        messageArray[0] = new BigInteger[PERMUTATION_WIDTH / w];
         initArray(messageArray[0]);
 
         int count = 0;
@@ -81,10 +84,10 @@ public class EncryptionEngine implements KeccakAttributes {
         int i = 0;
 
         for (int _n = 0; _n < message.length(); _n++) {
-            if (j > SHA3_512_ROTATION / w - 1) {
+            if (j > SHAKE256_ROTATION / w - 1) {
                 j = 0;
                 i++;
-                messageArray[i] = new BigInteger[1600 / w];
+                messageArray[i] = new BigInteger[PERMUTATION_WIDTH / w];
                 initArray(messageArray[i]);
             }
 
@@ -130,11 +133,20 @@ public class EncryptionEngine implements KeccakAttributes {
 
     /**
      * This is the function to be called from the menu that will actually encrypt the message or file. It will call the below Keccak functions to perform the encryption.
+     * cSHAKE in NIST.SP.800-185 takes 4 arguments, the N and S args are to enable users of the implementation to pick a variant of cSHAKE and in this implementation they do not have a choice.
+     * @param messageToEncrypt X per NIST.SP.800-185 the input bit string. This can be any length including zero. Cannot be null
+     * @param outputLength L per NIST.SP.800-185 the output hash length.
+     * @param key K per NIST.SP.800-185 user specified key. Can be empty.
      */
-    public String getHash(String messageToEncrypt) {
-        //init
+    public String getHash(String messageToEncrypt, int outputLength, String key) {
+        //init Phase
 
-        //squeeze array
+        //NIST newX creation to pass into cSHAKE
+        String hexKey = generateHexFromByteArray(key.getBytes());
+        String kmac_zero = generateHexFromByteArray(KMAC_ZEROLENGTH_ENCODING.toByteArray());
+        messageToEncrypt = hexKey + messageToEncrypt + kmac_zero;
+
+        //squeeze array initialization
         BigInteger[][] S = new BigInteger[5][5];
 
         for (int i = 0; i < 5; i++) {
@@ -151,7 +163,7 @@ public class EncryptionEngine implements KeccakAttributes {
         for (BigInteger[] Pi : P) {
             for (int i = 0; i < 5; i++) {
                 for (int j = 0; j < 5; j++) {
-                    if ((i + j * 5) < SHA3_512_ROTATION / w) {
+                    if ((i + j * 5) < SHAKE256_ROTATION / w) {
                         S[i][j] = S[i][j].xor(Pi[i + j * 5]);
                     }
                 }
@@ -166,15 +178,15 @@ public class EncryptionEngine implements KeccakAttributes {
         do {
             for (int i = 0; i < 5; i++) {
                 for (int j = 0; j < 5; j++) {
-                    if ((5 * i + j) < SHA3_512_ROTATION / w) {
+                    if ((5 * i + j) < SHAKE256_ROTATION / w) {
                         Z = Z + addZero(generateReverseHexFromByteArray(S[j][i].toByteArray()), 16).substring(0, 16);
                     }
                 }
             }
 
-        } while (Z.length() < SHA3_512_OUTPUT_LENGTH);
+        } while (Z.length() < outputLength);
 
-        return Z.substring(0, SHA3_512_OUTPUT_LENGTH * 2);
+        return Z.substring(0, outputLength * 2);
     }
 
     /**
