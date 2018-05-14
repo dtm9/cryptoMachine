@@ -38,8 +38,8 @@ public class PassphraseEncryptionEngine implements KeccakAttributes {
         //get c: c <-- KMACXOF256(ke, "", |m|, "SKE") xor m
         //TODO consider xor'ing the byte arrays as byte arrays. Might not be any prettier/better than converting them into BigIntegers though.
         byte[] ctmp_string = asciiStringToByteArray("SKE");
-        int c_length = raiseToMultipleOf8(plaintext.length());
-        byte[] ctmp = SHAKE.KMACXOF256(ke, EMPTY_MESSAGE, c_length, ctmp_string);
+        byte[] padded_message = addNISTPadding(plaintext.getBytes(), 8);
+        byte[] ctmp = SHAKE.KMACXOF256(ke, EMPTY_MESSAGE, padded_message.length, ctmp_string);
         String ctmp_hexstring = generateHexFromByteArray(ctmp);
         BigInteger ctmp_bigint = new BigInteger(ctmp_hexstring, 16);
         String ctmp_m_hexstring = generateHexFromByteArray(plaintext.getBytes());
@@ -55,6 +55,7 @@ public class PassphraseEncryptionEngine implements KeccakAttributes {
     }
 
     public byte[] decrypt(SymmetricCryptogram itemToDecrypt, String passphrase) {
+        //TODO now that we are padding the message the C should never be the wrong size, fix this code to accomidate and somewhere strip the padding.
         //get keka: (ke || ka) <-- KMACXOF256(z || pw, “”, 1024, “S”)
         byte[] keka_key = catArray(itemToDecrypt.getZ(), passphrase.getBytes());
         byte[] keka = SHAKE.KMACXOF256(keka_key, EMPTY_MESSAGE, 1024, S);
@@ -65,6 +66,7 @@ public class PassphraseEncryptionEngine implements KeccakAttributes {
         //get m: m <-- KMACXOF256(ke, “”, |c|, “SKE”) xor c
         byte[] m_string = asciiStringToByteArray("SKE");
         int m_length = raiseToMultipleOf8(itemToDecrypt.getC().length);
+
         byte[] mtmp = SHAKE.KMACXOF256(ke, EMPTY_MESSAGE, m_length, m_string);
         String mtmp_hexstring = generateHexFromByteArray(mtmp);
         BigInteger mtmp_bigint = new BigInteger(mtmp_hexstring, 16);
