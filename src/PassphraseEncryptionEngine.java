@@ -2,20 +2,94 @@ import java.math.BigInteger;
 import java.security.SecureRandom;
 import java.util.Arrays;
 
-import static extras.HexTools.catArray;
-import static extras.HexTools.generateHexFromByteArray;
+import static extras.HexTools.*;
 
 public class PassphraseEncryptionEngine implements KeccakAttributes {
+    //TODO IMPLEMENT NIST PADDING AND PADDING-STRIP
 
-    private KMACXOF256EncryptionEngine ee;
     private SecureRandom sr;
+
+    private static byte[] EMPTY_MESSAGE = asciiStringToByteArray("");
+    private static byte[] S = asciiStringToByteArray("S");
 
     /** Constructor that initializes the KMACXOF256 encryption and other utilities. */
     public PassphraseEncryptionEngine() {
-        ee = new KMACXOF256EncryptionEngine();
         sr = new SecureRandom();
     }
 
+    //TODO once we confirm this works, accept a byte array as message instead of a string so we can accept ANYTHING
+    public SymmetricCryptogram encrypt(String plaintext, String passphrase) {
+
+        System.out.println("encryption started!");
+        //get z: z <-- Random(512)
+        byte[] z = new byte[512];
+        sr.nextBytes(z);
+        System.out.println("z generated");
+
+        //get ke and ka: (ke || ka) <-- KMACXOF256(z || pw, "", 1024, "S")
+        byte[] keka_key = catArray(z, passphrase.getBytes());
+
+        byte[] keka = SHAKE.KMACXOF256(keka_key, EMPTY_MESSAGE, 1024, S);
+        byte[] ke = Arrays.copyOfRange(keka, 0, keka.length/2);
+        byte[] ka = Arrays.copyOfRange(keka, keka.length/2, keka.length);
+
+
+
+        //get c: c <-- KMACXOF256(ke, "", |m|, "SKE") xor m
+        //TODO consider xor'ing the byte arrays as byte arrays. Might not be any prettier/better than converting them into BigIntegers though.
+        byte[] ctmp_string = asciiStringToByteArray("SKE");
+        int c_length = raiseToMultipleOf8(plaintext.length());
+        byte[] ctmp = SHAKE.KMACXOF256(ke, EMPTY_MESSAGE, c_length, ctmp_string);
+        String ctmp_hexstring = generateHexFromByteArray(ctmp);
+        BigInteger ctmp_bigint = new BigInteger(ctmp_hexstring, 16);
+        String ctmp_m_hexstring = generateHexFromByteArray(plaintext.getBytes());
+        BigInteger ctmp_m_bigint = new BigInteger(ctmp_m_hexstring, 16);
+        BigInteger c_bigint = ctmp_bigint.xor(ctmp_m_bigint);
+        byte[] c = c_bigint.toByteArray();
+
+        //get t: t <-- KMACXOF256(ka, m, 512, "SKA")
+        byte[] t_string = asciiStringToByteArray("SKA");
+        byte[] t = SHAKE.KMACXOF256(ka, passphrase.getBytes(), 512, t_string);
+
+        return new SymmetricCryptogram(z, c ,t);
+    }
+
+    public byte[] decrypt(SymmetricCryptogram itemToDecrypt, String passphrase) {
+        //get keka: (ke || ka) <-- KMACXOF256(z || pw, “”, 1024, “S”)
+        byte[] keka_key = catArray(itemToDecrypt.getZ(), passphrase.getBytes());
+        byte[] keka = SHAKE.KMACXOF256(keka_key, EMPTY_MESSAGE, 1024, S);
+
+        byte[] ke = Arrays.copyOfRange(keka, 0, keka.length/2);
+        byte[] ka = Arrays.copyOfRange(keka, keka.length/2, keka.length);
+
+        //get m: m <-- KMACXOF256(ke, “”, |c|, “SKE”) xor c
+        byte[] m_string = asciiStringToByteArray("SKE");
+        int m_length = raiseToMultipleOf8(itemToDecrypt.getC().length);
+        byte[] mtmp = SHAKE.KMACXOF256(ke, EMPTY_MESSAGE, m_length, m_string);
+        String mtmp_hexstring = generateHexFromByteArray(mtmp);
+        BigInteger mtmp_bigint = new BigInteger(mtmp_hexstring, 16);
+        String mtmp_c_hexstring = generateHexFromByteArray(itemToDecrypt.getC());
+        BigInteger mtmp_c_bigint = new BigInteger(mtmp_c_hexstring, 16);
+        BigInteger m_bigint = mtmp_bigint.xor(mtmp_c_bigint);
+        byte[] m = m_bigint.toByteArray();
+
+        //get t': t' <-- KMACXOF256(ka, m, 512, “SKA”)
+        byte[] tprime_string = asciiStringToByteArray("SKA");
+        byte[] tprime = SHAKE.KMACXOF256(ka, m, 512, tprime_string);
+
+        //validate t' = t
+        String thex = generateHexFromByteArray(itemToDecrypt.getT());
+        String tprimehex = generateHexFromByteArray(tprime);
+        if (tprimehex.equals(thex)) {
+            System.out.println("They match!");
+        } else {
+            System.out.println("They don't match!\nT': " + tprimehex + "\nT: " + thex);
+        }
+
+        return m;
+    }
+
+    /*
     public SymmetricCryptogram encrypt(String plaintext, String passphrase) {
 
         //get z: z <-- Random(512)
@@ -81,4 +155,7 @@ public class PassphraseEncryptionEngine implements KeccakAttributes {
         //TODO (continued) but the key is ambiguous. Is that a string of anything, or a stirng of hex numbers? Need to make sure that part is correct. If this doesn't work I bet the issue is that thing right there. If my keccack engine took byte arrays for input this code
         //TODO (continued) would be way cleaner.
     }
+    */
+
+
 }
