@@ -1,6 +1,6 @@
 import javax.swing.*;
 import javax.swing.filechooser.FileSystemView;
-import java.io.File;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -37,8 +37,8 @@ public class Main implements KeccakAttributes {
 
     public static void main(final String[] theArgs) {
         boolean done = false;
-        KMACXOF256EncryptionEngine ee = new KMACXOF256EncryptionEngine();
-        //PassphraseEncryptionEngine pe = new PassphraseEncryptionEngine();
+        PassphraseEncryptionEngine pe = new PassphraseEncryptionEngine();
+        ECCEngine ecc = new ECCEngine();
 
         while (!done) {
             printMainMenu();
@@ -55,8 +55,8 @@ public class Main implements KeccakAttributes {
                     myScanner.nextLine(); //no assignment to sanitize the scanner
 
                     printMenu1();
-                    int secondChoice = myScanner.nextInt();
-                    switch (secondChoice) {
+                    int secondChoice_1 = myScanner.nextInt();
+                    switch (secondChoice_1) {
                         case 1: //choose file
                             S = asciiStringToByteArray("D"); //D is the diversification string for this action.
                             K = asciiStringToByteArray(""); //K is the key which we are not using for this so it is empty.
@@ -118,35 +118,93 @@ public class Main implements KeccakAttributes {
 
                     break;
 
-                case 2: //symmetric encrypt
+                case 2: //symmetric encryption with passphrase
 
-                    System.out.println("Type your message:");
-                    System.out.println();
                     myScanner.nextLine(); //no assignment to sanitize the scanner
 
-                    String rawInput = myScanner.nextLine();
-                    myScanner.nextLine(); //no assignment to sanitize the scanner
+                    printMenu2();
+                    int secondChoice_2 = myScanner.nextInt();
 
-                    System.out.println("Type your passphrase:");
-                    System.out.println();
-                    myScanner.nextLine(); //no assignment to sanitize the scanner
+                    switch (secondChoice_2) {
+                        case 1: //encrypt
 
-                    String rawPassword = myScanner.nextLine();
+                            System.out.println("Select file: ");
+                            JFileChooser myEncryptChooser = new JFileChooser(FileSystemView.getFileSystemView().getHomeDirectory());
 
-                    System.out.println("proceeding with message/pass: " + rawInput + " " + rawPassword);
-                    PassphraseEncryptionEngine pe = new PassphraseEncryptionEngine();
+                            int encryptRetValue = myEncryptChooser.showOpenDialog(null);
+                            File selectedFile = null;
 
-                    SymmetricCryptogram cipherobj = pe.encrypt(rawInput, rawPassword);
+                            if (encryptRetValue == JFileChooser.APPROVE_OPTION) {
+                                selectedFile = myEncryptChooser.getSelectedFile();
+                                Path sourcePath = Paths.get(selectedFile.getAbsolutePath());
+                                try {
+                                    M = Files.readAllBytes(sourcePath);
+                                    String encryptPassphrase = JOptionPane.showInputDialog(null, "Set the password");
+                                    System.out.println(encryptPassphrase);
 
-                    System.out.println("object created with secrets");
+                                    SymmetricCryptogram cipherobj = pe.encrypt(M, encryptPassphrase);
 
-                    System.out.println("\nWe will re-use the password variable to test");
+                                    //save the cryptogram to file
+                                    try {
+                                        FileOutputStream fileOut = new FileOutputStream(sourcePath.toString());
+                                        ObjectOutputStream out = new ObjectOutputStream(fileOut);
+                                        out.writeObject(cipherobj);
+                                        out.close();
+                                        fileOut.close();
+                                        System.out.println("Cryptogram saved to " + sourcePath.toString());
+                                    } catch (IOException e) {e.printStackTrace();}
+                                } catch (Exception e) { e.printStackTrace(); }
 
-                    byte[] secret = pe.decrypt(cipherobj, rawPassword);
 
-                    System.out.println("original message as byte[]: " + rawInput.getBytes() + "\ndecrypted: " + secret);
+                            }
+                            break;
+                        case 2: //decrypt
+                            //load the cryptogram
+                            System.out.println("Select file: ");
+                            JFileChooser myDecryptChooser = new JFileChooser(FileSystemView.getFileSystemView().getHomeDirectory());
 
+                            int decryptRetValue = myDecryptChooser.showOpenDialog(null);
+                            File selectedCryptogramFile = null;
 
+                            if (decryptRetValue == JFileChooser.APPROVE_OPTION) {
+                                selectedCryptogramFile = myDecryptChooser.getSelectedFile();
+                                Path cryptogramPath = Paths.get(selectedCryptogramFile.getAbsolutePath());
+                                SymmetricCryptogram decryptMe = null;
+                                try {
+                                    FileInputStream fileIn = new FileInputStream(cryptogramPath.toString());
+                                    ObjectInputStream in = new ObjectInputStream(fileIn);
+                                    decryptMe = (SymmetricCryptogram) in.readObject();
+                                    in.close();
+                                    fileIn.close();
+                                } catch (IOException i) {
+                                    i.printStackTrace();
+                                } catch (ClassNotFoundException c) {
+                                    System.err.println("SymmetricCryptogram class not found");
+                                    c.printStackTrace();
+                                }
+
+                                //get password
+                                String decryptPassphrase = JOptionPane.showInputDialog(null, "Enter the password");
+
+                                //get file
+                                byte[] originalFile = pe.decrypt(decryptMe, decryptPassphrase);
+
+                                System.out.println("Before we save...\n\n");
+                                System.out.println("originalFile as string: " + new String(originalFile));
+                                System.out.println("length: " + originalFile.length + " hex: " + generateHexFromByteArray(originalFile));
+                                //write file back out
+                                try {
+                                    FileOutputStream decryptedFileSteam = new FileOutputStream(cryptogramPath.toString());
+                                    decryptedFileSteam.write(originalFile);
+                                } catch (IOException d) {d.printStackTrace();}
+                            }
+                            break;
+                        case 3: //elliptic
+
+                            break;
+                        case 4: //exit
+                            break;
+                    }
                     break;
 
                 case 3: //exit
@@ -166,11 +224,14 @@ public class Main implements KeccakAttributes {
         mySB.append("----Main Menu----");
         mySB.append(LINE_BREAK);
         mySB.append(LINE_BREAK);
-        mySB.append("1) Encrypt something with SHA3");
+        mySB.append("1) Assignment 1: Hash something with SHA3");
         mySB.append(LINE_BREAK);
-        mySB.append("2) Encrypt file symmetrically with passphrase");
+        mySB.append("2) Assignment 2: Symmetric Encryption with Passphrase");
         mySB.append(LINE_BREAK);
-        mySB.append("3) Exit Program");
+        mySB.append("3) Assignment 3: Elliptic key pairs");
+        mySB.append(LINE_BREAK);
+        mySB.append(LINE_BREAK);
+        mySB.append("4) Exit Program");
         mySB.append(LINE_BREAK);
         mySB.append(LINE_BREAK);
         System.out.print(mySB.toString());
@@ -189,6 +250,20 @@ public class Main implements KeccakAttributes {
         mySB.append(LINE_BREAK);
         mySB.append(LINE_BREAK);
         mySB.append("4) Exit");
+        mySB.append(LINE_BREAK);
+        System.out.print(mySB.toString());
+        System.out.print("Enter a command: ");
+        mySB.delete(0, mySB.capacity());
+    }
+
+    private static void printMenu2() {
+        mySB.append(LINE_BREAK);
+        mySB.append(LINE_BREAK);
+        mySB.append("1) Encrypt a file");
+        mySB.append(LINE_BREAK);
+        mySB.append("2) Decrypt a file");
+        mySB.append(LINE_BREAK);
+        mySB.append("3) Exit");
         mySB.append(LINE_BREAK);
         System.out.print(mySB.toString());
         System.out.print("Enter a command: ");

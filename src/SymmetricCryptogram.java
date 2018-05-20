@@ -1,4 +1,6 @@
-public class SymmetricCryptogram {
+import java.io.Serializable;
+
+public class SymmetricCryptogram implements Serializable {
     byte[] z;
     byte[] c;
     byte[] t;

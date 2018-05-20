@@ -1,5 +1,6 @@
 package extras;
 
+import java.math.BigInteger;
 import java.util.Arrays;
 
 /**
@@ -105,8 +106,9 @@ public class HexTools {
      * @return padded aray
      */
     public static byte[] addNISTPadding(byte[] array, int blockSize) {
-        int difference = blockSize - (array.length % blockSize); //if array is correct size already difference will equal blocksize so we append a full block
+        int difference = blockSize - (array.length % blockSize); //if array is correct size already difference will equal (blocksize - zero) so we append a full block
 
+        //System.out.println("Padding:\nSource length: " + array.length + "\nBlocksize - array.length: " + difference + "\nNew Size: " + (array.length + difference));
         byte[] paddedArray = new byte[array.length + difference];
 
         for (int i = 0; i < array.length; i++) {
@@ -121,6 +123,7 @@ public class HexTools {
                 paddedArray[i] = (byte)0x00; //append zero in every index to the end of the new array for padding.
             }
         }
+        //System.out.println("Actual size of paddedArray returned from padding method: " + paddedArray.length);
         return paddedArray;
     }
 
@@ -133,7 +136,7 @@ public class HexTools {
      */
     public static byte[] stripNISTPadding(byte[] array) {
         boolean done = false;
-        int i = array.length;
+        int i = array.length - 1;
         int paddingStartIndex = 0;
 
         while (!done) {
@@ -154,5 +157,27 @@ public class HexTools {
         }
 
         return unpaddedArray;
+    }
+
+    /**
+     * Compute a suqre root of v mod p with a specified
+     * least significant bit, if such a root exists
+     * @param v the radicand.
+     * @param p the modulus (must satisfy p mod 4 = 3)
+     * @param lsb desired least significant bit (true: 1, false: 0).
+     * @return a square root r of v mod p with r mod 2 = 1 iff lsb = true
+     * if such a root exists, otherwise return null.
+     * @author this method was provided in the assignment handout.
+     */
+    public static BigInteger sqrt(BigInteger v, BigInteger p, boolean lsb) {
+        assert (p.testBit(0) && p.testBit(1)); // p = 3 (mod 4)
+        if (v.signum() == 0) {
+            return BigInteger.ZERO;
+        }
+        BigInteger r = v.modPow(p.shiftRight(2).add(BigInteger.ONE), p);
+        if (r.testBit(0) != lsb) {
+            r = p.subtract(r); // correct the lsb
+        }
+        return (r.multiply(r).subtract(v).mod(p).signum() == 0) ? r : null;
     }
 }
