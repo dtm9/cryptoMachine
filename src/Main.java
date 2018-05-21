@@ -10,10 +10,6 @@ import java.util.Scanner;
 import static extras.HexTools.asciiStringToByteArray;
 import static extras.HexTools.generateHexFromByteArray;
 
-//TODO byte arrays go in, byte arrays come out. Replace my Encryption Machine from part 1 with SHAKE.java's API. It's for the better.
-
-//TODO backtrack and fix PassphraseEncryptionEngine to use SHAKE instead of my code, then do part 3 and 4 ASAP. In one day if possible
-
 /**
  * @author Dylan Miller
  * TCSS 487 Cryptography - Practical Project
@@ -189,9 +185,6 @@ public class Main implements KeccakAttributes {
                                 //get file
                                 byte[] originalFile = pe.decrypt(decryptMe, decryptPassphrase);
 
-                                System.out.println("Before we save...\n\n");
-                                System.out.println("originalFile as string: " + new String(originalFile));
-                                System.out.println("length: " + originalFile.length + " hex: " + generateHexFromByteArray(originalFile));
                                 //write file back out
                                 try {
                                     FileOutputStream decryptedFileSteam = new FileOutputStream(cryptogramPath.toString());
@@ -200,6 +193,15 @@ public class Main implements KeccakAttributes {
                             }
                             break;
                         case 3: //elliptic
+                            myScanner.nextLine(); //sanitize scanner
+
+                            printMenu3();
+
+                            int secondChoice_3 = myScanner.nextInt();
+
+                            switch (secondChoice_3) {
+
+                            }
 
                             break;
                         case 4: //exit
@@ -207,7 +209,11 @@ public class Main implements KeccakAttributes {
                     }
                     break;
 
-                case 3: //exit
+                case 4: //public key encryption
+                    break;
+                case 5: //cryptographic signatures
+                    break;
+                case 6: //exit
                     done = true;
                     break;
             }
@@ -228,10 +234,16 @@ public class Main implements KeccakAttributes {
         mySB.append(LINE_BREAK);
         mySB.append("2) Assignment 2: Symmetric Encryption with Passphrase");
         mySB.append(LINE_BREAK);
-        mySB.append("3) Assignment 3: Elliptic key pairs");
+        mySB.append("3) Assignment 3: Creating Elliptic key pairs");
         mySB.append(LINE_BREAK);
         mySB.append(LINE_BREAK);
-        mySB.append("4) Exit Program");
+        mySB.append("4) Assignment 4: Public Key Encryption");
+        mySB.append(LINE_BREAK);
+        mySB.append(LINE_BREAK);
+        mySB.append("5) Assignment 5: Cryptographic Signatures");
+        mySB.append(LINE_BREAK);
+        mySB.append(LINE_BREAK);
+        mySB.append("6) Exit Program");
         mySB.append(LINE_BREAK);
         mySB.append(LINE_BREAK);
         System.out.print(mySB.toString());
@@ -239,6 +251,10 @@ public class Main implements KeccakAttributes {
         mySB.delete(0, mySB.capacity());
     }
 
+    /**
+     * Prints the assignment 1 menu using the StringBuilder.
+     * @author Dylan Miller
+     */
     private static void printMenu1() {
         mySB.append(LINE_BREAK);
         mySB.append(LINE_BREAK);
@@ -256,6 +272,10 @@ public class Main implements KeccakAttributes {
         mySB.delete(0, mySB.capacity());
     }
 
+    /**
+     * Prints the assignment 2 menu using the StringBuilder.
+     * @author Dylan Miller
+     */
     private static void printMenu2() {
         mySB.append(LINE_BREAK);
         mySB.append(LINE_BREAK);
@@ -264,6 +284,22 @@ public class Main implements KeccakAttributes {
         mySB.append("2) Decrypt a file");
         mySB.append(LINE_BREAK);
         mySB.append("3) Exit");
+        mySB.append(LINE_BREAK);
+        System.out.print(mySB.toString());
+        System.out.print("Enter a command: ");
+        mySB.delete(0, mySB.capacity());
+    }
+
+    /**
+     * Prints the assignment 3 menu using the StringBuilder.
+     * @author Dylan Miller
+     */
+    private static void printMenu3() {
+        mySB.append(LINE_BREAK);
+        mySB.append(LINE_BREAK);
+        mySB.append("1) Generate a key pair");
+        mySB.append(LINE_BREAK);
+        mySB.append("2) Exit");
         mySB.append(LINE_BREAK);
         System.out.print(mySB.toString());
         System.out.print("Enter a command: ");

@@ -1,4 +1,11 @@
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.math.BigInteger;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
 import static extras.HexTools.*;
 
 public class ECCEngine {
@@ -20,7 +27,7 @@ public class ECCEngine {
         //initialize r where r = 2^519 - 337554763258501705789107630418782636071904961214051226618635150085779108655765
         r = new BigInteger("2");
         r.pow(519);
-        r = r.subtract(new BigInteger("337554763258501705789107630418782636071904961214051226618635150085779108655765"));
+        r = r.subtract(new BigInteger("337554763258501705789107630418782636071904961214051226618635150085779108655765")); //TODO ask what R is really used for. I made it and never used it. Is it used when doing 4s?
 
         //initialize p, a Mersenne prime number p := 2^521 - 1
         p = new BigInteger("2");
@@ -45,16 +52,36 @@ public class ECCEngine {
         s = bigint_s.toByteArray();
 
         //get V: V <-- s * G
+        CoordinatePair V = G.multiply(bigint_s);
         //TODO ask how s*G is supposed to work. S is a byte array and G is a coordinate pair
 
         //TODO what is the key pair (s, V)? A byte array? Two byte arrays?
-        //TODO START HERE WHEN I WAKE UP RETURN SOME BULLSHIT TO MOVE ON TO THE NEXT PART
+        //TODO for now - going to save them as seperate files
+
+        //save s //TODO ask about the bonus question for 3. is V the private key and should we passphrase encrypt like assignment 2?
+        Path savepath = Paths.get(System.getProperty("user.home"));
+        try {
+            FileOutputStream privKeyStream = new FileOutputStream(savepath.toString() + "/priv.key");
+            privKeyStream.write(s);
+            privKeyStream.close();
+            System.out.println("Private key saved to " + savepath.toString() + "/priv.key");
+        } catch (IOException d1) {d1.printStackTrace();}
+
+        //save V
+        try {
+            FileOutputStream pubKeyStream = new FileOutputStream(savepath.toString() + "/pub.key");
+            ObjectOutputStream out = new ObjectOutputStream(pubKeyStream);
+            out.writeObject(V);
+            out.close();
+            pubKeyStream.close();
+            System.out.println("Public key saved to " + savepath.toString() + "/pub.key");
+        } catch (IOException d2) {d2.printStackTrace();}
     }
 
 
-    public class CoordinatePair {
-        private BigInteger x;
-        private BigInteger y;
+    public class CoordinatePair implements Serializable {
+        private final BigInteger x;
+        private final BigInteger y;
 
         public CoordinatePair(BigInteger xCoordinate, BigInteger yCoordinate) {
             x = xCoordinate;
@@ -86,7 +113,7 @@ public class ECCEngine {
             BigInteger topOfX = topLeftOfX.add(topRightOfX);
 
             BigInteger one = new BigInteger("1");
-            BigInteger d = new BigInteger("-376014");
+            BigInteger d = new BigInteger("-376014"); //TODO ask if this is really supposed to be negative
             BigInteger bottomRightOfXorY = d.multiply(this.x).multiply(otherPoint.getX()).multiply(this.y).multiply(otherPoint.getY());
             BigInteger bottomOfX = one.add(bottomRightOfXorY);
 
@@ -126,6 +153,17 @@ public class ECCEngine {
                 }
             }
             return result;
+        }
+
+        public CoordinatePair multiply(BigInteger value) {
+            //note: multiplying a single term by a ECC coordinate pair is simply the point added to itself n number of times where n is the term
+            CoordinatePair tmp = new CoordinatePair(this.x, this.y);
+
+            for (BigInteger i = value; i.compareTo(BigInteger.ZERO) > 0; i.subtract(BigInteger.ONE)) { //TODO off-by-one risk here
+                tmp = tmp.computeSum(tmp);
+            }
+
+            return tmp;
         }
     }
 }
